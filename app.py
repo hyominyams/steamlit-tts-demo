@@ -1,4 +1,5 @@
 import streamlit as st
+import io
 from google.cloud import texttospeech
 from google.oauth2 import service_account
 
@@ -63,3 +64,11 @@ if st.button("🎧 음성 생성"):
 
     st.success("✅ 음성 생성 완료!")
     st.audio("output.mp3", format="audio/mp3")
+
+    # ✅ 다운로드 버튼 추가
+    st.download_button(
+        label="📥 MP3 다운로드",
+        data=io.BytesIO(response.audio_content),
+        file_name="output.mp3",
+        mime="audio/mpeg"
+    )
