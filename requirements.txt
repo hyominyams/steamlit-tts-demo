@@ -1,3 +1,3 @@
-echo streamlit > requirements.txt
-echo google-cloud-texttospeech >> requirements.txt
-echo python-dotenv >> requirements.txt
+streamlit
+google-cloud-texttospeech
+python-dotenv
