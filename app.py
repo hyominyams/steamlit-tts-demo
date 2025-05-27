@@ -3,36 +3,50 @@ import streamlit as st
 from google.cloud import texttospeech
 from google.oauth2 import service_account
 
-# 인증 정보 가져오기 (Streamlit secrets 사용)
+# ✅ Streamlit secrets에서 인증 정보 가져오기
 gcp_info = st.secrets["gcp_service_account"]
 credentials = service_account.Credentials.from_service_account_info(gcp_info)
 client = texttospeech.TextToSpeechClient(credentials=credentials)
 
 st.title("🗣️ Google Cloud Text-to-Speech")
 
+# ✅ 캐시에 직렬화 가능한 값만 반환
 @st.cache_data
 def get_voices():
     response = client.list_voices()
-    return response.voices
+    return [
+        {
+            "name": voice.name,
+            "language_codes": voice.language_codes,
+            "ssml_gender": voice.ssml_gender.name,
+            "natural_sample_rate_hertz": voice.natural_sample_rate_hertz
+        }
+        for voice in response.voices
+    ]
 
 voices = get_voices()
-languages = sorted(set(lang for voice in voices for lang in voice.language_codes))
-language = st.selectbox("언어 선택", languages)
 
-filtered_voices = [v for v in voices if language in v.language_codes]
-voice_names = [f"{v.name} ({texttospeech.SsmlVoiceGender(v.ssml_gender).name})" for v in filtered_voices]
-selected_voice = st.selectbox("보이스 선택", voice_names)
-text = st.text_area("텍스트 입력", "Hello world!")
+# ✅ 언어 코드 목록 생성
+languages = sorted(set(lang for voice in voices for lang in voice["language_codes"]))
+language = st.selectbox("🌍 언어 선택", languages)
 
-if st.button("음성 생성"):
-    voice_idx = voice_names.index(selected_voice)
+# ✅ 언어 필터링
+filtered_voices = [v for v in voices if language in v["language_codes"]]
+voice_options = [f"{v['name']} ({v['ssml_gender']})" for v in filtered_voices]
+selected_voice = st.selectbox("🗣️ 보이스 선택", voice_options)
+
+# ✅ 텍스트 입력
+text = st.text_area("💬 텍스트 입력", "Hello world!")
+
+if st.button("🎧 음성 생성"):
+    voice_idx = voice_options.index(selected_voice)
     voice_param = filtered_voices[voice_idx]
 
     synthesis_input = texttospeech.SynthesisInput(text=text)
     voice = texttospeech.VoiceSelectionParams(
         language_code=language,
-        name=voice_param.name,
-        ssml_gender=voice_param.ssml_gender,
+        name=voice_param["name"],
+        ssml_gender=texttospeech.SsmlVoiceGender[voice_param["ssml_gender"]],
     )
     audio_config = texttospeech.AudioConfig(audio_encoding=texttospeech.AudioEncoding.MP3)
 
